@@ -1,0 +1,16 @@
+<group>
+	<kinectV2_003884550547>
+		<minDistance>500</minDistance>
+		<maxDistance>6000</maxDistance>
+	</kinectV2_003884550547>
+	<pointCloudSteps>25</pointCloudSteps>
+	<thickness>1</thickness>
+	<jitter>1</jitter>
+	<pointSize>1</pointSize>
+	<connectionDistance>250</connectionDistance>
+	<pointDepth>2000</pointDepth>
+	<shader?>1</shader?>
+	<showKinectDebug?>0</showKinectDebug?>
+	<orbit_speed>0.1</orbit_speed>
+	<cam_distance>3150</cam_distance>
+</group>

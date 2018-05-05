@@ -1,0 +1,6 @@
+ofxBeat
+ofxControlPanel
+ofxGui
+ofxKinectV2-feature-worldcoord
+ofxPostProcessing
+ofxXmlSettings
