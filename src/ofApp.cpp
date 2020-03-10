@@ -12,6 +12,9 @@ void ofApp::setup(){
     //Uncomment for verbose info from libfreenect2
     //ofSetLogLevel(OF_LOG_VERBOSE);
     
+    ofLog() << "GL Version" << glGetString( GL_VERSION );
+    
+    ofSoundStreamSetup(0, 1, this, 44100, beat.getBufferSize(), 4);
     
     
     ofBackground(0, 0, 0);
@@ -33,6 +36,8 @@ void ofApp::setup(){
     
     panel.setup("", "settings.xml", 10, 100);
     
+    ofLog() << "number of kinects: " << kinects.size() << endl;
+    
     //Note you don't have to use ofxKinectV2 as a shared pointer, but if you want to have it in a vector ( ie: for multuple ) it needs to be.
     for(int d = 0; d < kinects.size(); d++){
         kinects[d] = shared_ptr <ofxKinectV2> (new ofxKinectV2());
@@ -41,9 +46,9 @@ void ofApp::setup(){
         
         meshes[d].setMode(OF_PRIMITIVE_LINES);
         //meshes[d].setMode(OF_PRIMITIVE_POINTS);
-       /* meshes[d].enableColors();
-        meshes[d].enableIndices();
-        meshes[d].enableTextures();*/
+        /* meshes[d].enableColors();
+         meshes[d].enableIndices();
+         meshes[d].enableTextures();*/
     }
     
     panel.add(pointCloudSteps.setup("pointCloudSteps", 25, 1, 100));
@@ -52,10 +57,16 @@ void ofApp::setup(){
     panel.add(pointSize.setup("pointSize", 1, 1, 10));
     panel.add(connectionDistance.setup("connectionDistance", 250, 1, 500));
     panel.add(pointDepth.setup("pointDepth", 2000, 1, 5000));
-    panel.add(doShader.setup("shader?", false));
+    panel.add(doShader.setup("shader?", true));
     panel.add(showKinectDebug.setup("showKinectDebug?", false));
     panel.add(orbitInc.setup("orbit speed", 0.1, -2, 2));
     panel.add(distance.setup("cam distance", 1000, 0, 10000));
+    panel.add(blurAmnt.setup("blurAmnt", 100, -500, 500));
+    
+    panel.add(xDistortRadius.setup("xDistortRadius", 1, -2.50, 2.50));
+    panel.add(yDistortRadius.setup("yDistortRadius", 1, -2.50, 2.50));
+    panel.add(zDistortRadius.setup("zDistortRadius", 1, -2.50, 2.50));
+    
     
     
     
@@ -83,15 +94,13 @@ void ofApp::update(){
     
     glPointSize(pointSize);
     
-    orbitAngle += orbitInc;
     
-    cam.orbit(orbitAngle, 0, distance);
     //cam.roll(roll);
     
     for(int d = 0; d < kinects.size(); d++){
         kinects[d]->update();
         if( kinects[d]->isFrameNew() ){
-            texDepth[d].loadData( kinects[d]->getDepthPixels() );
+            texDepth[d].loadData( kinects[d]->getRawDepthPixels() );
             texRGB[d].loadData( kinects[d]->getRgbPixels() );
             
             //pointCloud.push_back(kinects[d]->getWorldCoordinates());
@@ -108,45 +117,67 @@ void ofApp::update(){
             //meshes[d].clear();
             
             /*cout << "pc ";
-            cout << reducedPointCloud.size();
-            cout << pointCloud.size();
-            cout << "\n";*/
+             cout << reducedPointCloud.size();
+             cout << pointCloud.size();
+             cout << "\n";*/
             
             //meshes[d].addVertices(pc);
             
             // Let's add some lines!
             // float connectionDistance = 50;
             /*int numVerts = meshes[d].getNumVertices();
-            for (int a=0; a<numVerts; ++a) {
-                ofVec3f verta = meshes[d].getVertex(a);
-                for (int b=a+1; b<numVerts; ++b) {
-                    ofVec3f vertb = meshes[d].getVertex(b);
-                    float distance = verta.distance(vertb);
-                    if (distance <= connectionDistance) {
-                        // In OF_PRIMITIVE_LINES, every pair of vertices or indices will be
-                        // connected to form a line
-                        meshes[d].addIndex(a);
-                        meshes[d].addIndex(b);
-                    }
-                }
-            }*/
+             for (int a=0; a<numVerts; ++a) {
+             ofVec3f verta = meshes[d].getVertex(a);
+             for (int b=a+1; b<numVerts; ++b) {
+             ofVec3f vertb = meshes[d].getVertex(b);
+             float distance = verta.distance(vertb);
+             if (distance <= connectionDistance) {
+             // In OF_PRIMITIVE_LINES, every pair of vertices or indices will be
+             // connected to form a line
+             meshes[d].addIndex(a);
+             meshes[d].addIndex(b);
+             }
+             }
+             }*/
             
             //meshes[d].addTexCoords(texRGB[0].getTextureData().); //(0, 0, texRGB[0].getWidth(), texRGB[0].getHeight());
             
             //cout << meshes[d].getNumVertices();
             //cout << "\n";
-
+            
         }
     }
     
+    
+    
+    beat.update(ofGetElapsedTimeMillis());
+    
+    auto duration = 200.f;
+    //auto endTime = initTime + duration;
+    auto now = ofGetElapsedTimef();
+    
+    float kick = beat.kick();
+    float snare = beat.snare();
+    float hihat = beat.hihat();
+    
+    float radius = ofMap(snare, 0, 1, 1, xDistortRadius);
+    float yRadius = ofMap(kick, 0, 1, 1, yDistortRadius);
+    float zRadius = ofMap(hihat, 0, 1, 1, zDistortRadius);
+    
+    for (int y = 0; y < reducedPointCloud.size(); y++) {
+        reducedPointCloud[y].x *= radius;
+        reducedPointCloud[y].y *= yRadius;
+        reducedPointCloud[y].z *= zRadius;
+    }
+    
     /*int width = 1000, height = 1000;
-    meshes[0].clear();
-    for (int y = 0; y < height; y++){
-        for (int x = 0; x < width; x++){
-            meshes[0].addVertex(ofPoint(x*20, y*20, 0)); // make a new vertex
-            meshes[0].addColor(ofFloatColor(255.0,0, 0.0, 125.0));  // add a color at that vertex
-        }
-    }*/
+     meshes[0].clear();
+     for (int y = 0; y < height; y++){
+     for (int x = 0; x < width; x++){
+     meshes[0].addVertex(ofPoint(x*20, y*20, 0)); // make a new vertex
+     meshes[0].addColor(ofFloatColor(255.0,0, 0.0, 125.0));  // add a color at that vertex
+     }
+     }*/
     
     //vbos[0].setMesh(meshes[0], GL_STATIC_DRAW);
     
@@ -155,19 +186,19 @@ void ofApp::update(){
     // to make triangles. the numbers commented show the indices added in the first run of
     // this loop - notice here that we are re-using indices 1 and 10
     /*for (int y = 0; y < height-1; y++){
-        for (int x=0; x < width-1; x++){
-            meshes[0].addIndex(x+y*width);         // 0
-            meshes[0].addIndex((x+1)+y*width);     // 1
-            meshes[0].addIndex(x+(y+1)*width);     // 10
-            
-            meshes[0].addIndex((x+1)+y*width);     // 1
-            meshes[0].addIndex((x+1)+(y+1)*width); // 11
-            meshes[0].addIndex(x+(y+1)*width);     // 10
-        }
-    }*/
+     for (int x=0; x < width-1; x++){
+     meshes[0].addIndex(x+y*width);         // 0
+     meshes[0].addIndex((x+1)+y*width);     // 1
+     meshes[0].addIndex(x+(y+1)*width);     // 10
+     
+     meshes[0].addIndex((x+1)+y*width);     // 1
+     meshes[0].addIndex((x+1)+(y+1)*width); // 11
+     meshes[0].addIndex(x+(y+1)*width);     // 10
+     }
+     }*/
     
     /*meshes[0].clear();
-    meshes[0] = ofMesh.box(200.0, 200.0, 200.0, 10.0, 10.0, 10.0);*/
+     meshes[0] = ofMesh.box(200.0, 200.0, 200.0, 10.0, 10.0, 10.0);*/
     
     
 }
@@ -181,6 +212,9 @@ void ofApp::draw(){
     
     
     cam.begin();
+    orbitAngle += orbitInc;
+    
+    cam.orbit(orbitAngle, 1, distance);
     cam.setTarget(ofVec3f(0.0, 0.0, 0.0));
     //cam.rotate(0.1, cam.getUpDir() );
     //cam.setPosition(ofGetWidth()/2,ofGetHeight()/2, 1000);
@@ -188,8 +222,8 @@ void ofApp::draw(){
     
     
     for(int d = 0; d < kinects.size(); d++){
-        float dwHD = ofGetWidth()/4;
-        float dhHD = ofGetHeight()/4;
+        float dwHD = ofGetWidth();
+        float dhHD = ofGetHeight();
         
         float shiftY = 100 + ((10 + texDepth[d].getHeight()) * d);
         
@@ -201,10 +235,33 @@ void ofApp::draw(){
         //cout << meshes[d].getNumVertices();
         //cout << "\n";
         
+        cout << "Depth ";
+        cout << texDepth[d].getHeight();
+        cout << " ";
+        cout << texDepth[d].getWidth();
+        cout << "\n";
+        cout << "RGB ";
+        cout << texRGB[d].getHeight();
+        cout << " ";
+        cout << texRGB[d].getWidth();
+        cout << "\n";
         
+        cout << texDepth[d].getHeight() / texRGB[d].getHeight();
+        cout << "\n";
+        cout << texDepth[d].getWidth() / texRGB[d].getWidth();
+        cout << "\n";
+        
+        /*dwHD = dwHD / (texDepth[d].getWidth() / texRGB[d].getWidth());
+         dhHD = dhHD / (texDepth[d].getHeight() / texRGB[d].getHeight());*/
         
         //shaderTexture.bindAsImage();
         //shaderTexture.allocate(ofGetWidth(),ofGetHeight(),GL_RGB);
+        
+        //ofFbo fbo;
+        /*fbo.allocate(texRGB[d].getWidth(), texRGB[d].getHeight(), GL_RGB);
+         fbo.begin();
+         texRGB[0].draw(0, 0, fbo.getWidth(), fbo.getHeight());
+         fbo.end();*/
         
         
         if(doShader) {
@@ -212,7 +269,7 @@ void ofApp::draw(){
             shader.begin();
             
             shaderTexture = texRGB[0];
-            shaderTexture.bind();
+            //shaderTexture.bind();
             
             
             
@@ -227,10 +284,12 @@ void ofApp::draw(){
             shader.setUniform2f("resolution", 100, 100); //ofVec2f(vidPlayer.getWidth(), vidPlayer.getHeight()));
             shader.setUniform2f("mouse", ofVec2f(mouseX, mouseY));
             shader.setUniform1f("time", sin(ofGetElapsedTimef()));
+            
+            shader.setUniform1f("blurAmnt", blurAmnt);
             //shader.setUniformTexture("tex0", texturePatternImg.getTexture(), 1);
             
             
-            
+            //fbo.draw(0, 0);
             
             
             shader.setUniformTexture("tex0", shaderTexture, 1);
@@ -249,14 +308,18 @@ void ofApp::draw(){
         
         
         /*cout << "rpc ";
-        cout << reducedPointCloud.size();
-        cout << "\n";*/
+         cout << reducedPointCloud.size();
+         cout << "\n";*/
+        
+        //ofMesh mesh;
+        mesh.setMode(OF_PRIMITIVE_TRIANGLES);
+        mesh.clear();
         
         if (reducedPointCloud.size() > 0) {
             for (int i = 0; i < reducedPointCloud.size() - 2; i++) {
                 
                 /*cout << i;
-                cout << "\n";*/
+                 cout << "\n";*/
                 
                 float distance = reducedPointCloud[i].distance(reducedPointCloud[i + 1]);
                 
@@ -272,11 +335,38 @@ void ofApp::draw(){
                     
                     
                     
-                    ofDrawLine(reducedPointCloud[i], reducedPointCloud[i + 1]);
+                    //ofDrawLine(reducedPointCloud[i], reducedPointCloud[i + 1]);
+                    
+                    ofPoint pc1 = reducedPointCloud[i];
+                    //ofPoint pc2 = reducedPointCloud[i + 1];
+                    
+                    
+                    mesh.setMode(OF_PRIMITIVE_LINE_STRIP);
+                    
+                    mesh.addVertex( pc1 );
+                    mesh.addTexCoord( shaderTexture.getCoordFromPoint(pc1.x + (dwHD / 2), pc1.y + (dhHD / 2)) );
+                    
+                    /*mesh.addVertex( pc2 );
+                     mesh.addTexCoord( shaderTexture.getCoordFromPoint(pc2.x + (dwHD / 2), pc2.y + (dhHD / 2)) );*/
+                    
+                    
+                    /*mesh.addVertex( ofPoint(x,y+h) );
+                     mesh.addTexCoord( myTexture.getCoordFromPercent(0,1) );
+                     
+                     mesh.addVertex( ofPoint(x+w,y+h) );
+                     mesh.addTexCoord( myTexture.getCoordFromPercent(1,1) );*/
+                    
+                    //mesh.draw();
+                    
+                    /* myTexture.bind();
+                     mesh.draw();
+                     myTexture.unbind();*/
                 }
                 
             }
         }
+        
+        mesh.draw();
         
         //meshes[d].draw();
         //vbos[0].drawElements(GL_TRIANGLES, 100);
@@ -285,10 +375,10 @@ void ofApp::draw(){
         //mesh.drawVertices();
         //meshes[d].draw();
         /*ofMesh m = meshes[d].box(200.0, 200.0, 200.0, 10.0, 10.0, 10.0);
-        
-        m.drawFaces();
-        m.drawVertices();
-        m.draw();*/
+         
+         m.drawFaces();
+         m.drawVertices();
+         m.draw();*/
         
         //shaderTexture.draw(0, 0);
         
@@ -316,19 +406,21 @@ void ofApp::draw(){
     if (showKinectDebug) {
         texDepth[0].draw(0, 0);
         texRGB[0].draw(0, 0);
+        
+        //fbo.draw(0, 0);
     }
     
     cam.end();
     
     if (!bHide) {
-         panel.draw();
+        panel.draw();
         
         ofDisableDepthTest();
     } else {
         ofEnableDepthTest();
     }
     
-   
+    
 }
 
 
@@ -341,7 +433,7 @@ vector<ofPoint> ofApp::reducePointCloud(vector<ofPoint> pc, int steps){
     for (int i = 0; i < pc.size(); i+=steps) {
         
         if (pc[i].x != 0 && pc[i].y != 0 && pc[i].z != 0 && pc[i].z < pointDepth*1.0) {
-        
+            
             reducedPc.push_back(pc[i]);
             
         }
@@ -353,12 +445,25 @@ vector<ofPoint> ofApp::reducePointCloud(vector<ofPoint> pc, int steps){
     
 }
 
+void ofApp::audioReceived(float* input, int bufferSize, int nChannels) {
+    beat.audioReceived(input, bufferSize, nChannels);
+}
 
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
     if(key == 'h'){
         bHide = !bHide;
+    }
+    if(key == 's') {
+        
+        string ts = ofGetTimestampString();
+        
+        string fname = "dreamstate_" + ts + ".ply";
+        mesh.save(fname);
+        
+        img.grabScreen(0, 0 , ofGetWidth(), ofGetHeight());
+        img.save("dreamstate_" + ts + ".png");
     }
 }
 

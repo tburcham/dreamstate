@@ -3,6 +3,7 @@
 #include "ofMain.h"
 #include "ofxKinectV2.h"
 #include "ofxGui.h"
+#include "ofxBeat.h"
 
 class ofApp : public ofBaseApp{
     
@@ -25,7 +26,7 @@ public:
     ofxIntSlider pointCloudSteps;
     ofxIntSlider pointSize;
     ofxIntSlider pointDepth;
-
+    
     ofxFloatSlider connectionDistance;
     ofxToggle doShader;
     ofxToggle showKinectDebug;
@@ -34,6 +35,10 @@ public:
     ofxFloatSlider orbitInc;
     ofxFloatSlider rollInc;
     ofxFloatSlider distance;
+    ofxFloatSlider xDistortRadius;
+    ofxFloatSlider yDistortRadius;
+    ofxFloatSlider zDistortRadius;
+    ofxFloatSlider blurAmnt;
     
     
     vector < shared_ptr<ofxKinectV2> > kinects;
@@ -46,8 +51,13 @@ public:
     vector<ofPoint> reducePointCloud(vector<ofPoint> pc, int steps);
     vector<ofPoint> reducedPointCloud;
     
+    ofMesh mesh;
     vector <ofMesh> meshes;
     vector <ofVbo> vbos;
+    
+    ofImage     img;
+    
+    ofFbo fbo;
     
     ofEasyCam cam;
     
@@ -61,5 +71,8 @@ public:
     ofTexture shaderTexture;
     
     float orbitAngle, rollAngle;
-
+    
+    ofxBeat beat;
+    void audioReceived(float*, int, int);
+    
 };

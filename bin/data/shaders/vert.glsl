@@ -38,7 +38,7 @@ void main()
      VertexOut.normal = normal;*/
     
     
-    pos = vec4(position.x, position.y, position.z, 0);
+    pos = vec4(-position.x, -position.y, position.z, 0);
     //pos += 5;
     
     vTexCoord = texcoord;
@@ -48,5 +48,5 @@ void main()
     // send the vertices to the fragment shader
     //gl_Position = modelViewProjectionMatrix * position;
     
-    gl_Position = pos;
+    gl_Position = pos * modelViewProjectionMatrix;
 }

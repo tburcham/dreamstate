@@ -44,14 +44,14 @@ void main()
     
     //thickness = 20;
     
-    vec3 up = vec3(0, 0, -1);	// arbitrary up vector
+    vec3 up = vec3(0, 0, -1);    // arbitrary up vector
     
     vec3 p0 = vec3(gl_in[0].gl_Position.xyz);
     vec3 p1 = vec3(gl_in[1].gl_Position.xyz);
     //vec3 p2 = vec3(gl_in[2].gl_Position.xyz);
     
-    vec3 dir = normalize(p1 - p0);			// normalized direction vector from p0 to p1
-    vec3 right = normalize(cross(dir, up));	// right vector
+    vec3 dir = normalize(p1 - p0);            // normalized direction vector from p0 to p1
+    vec3 right = normalize(cross(dir, up));    // right vector
     vec3 norm = cross(right, dir);
     float fColMult = abs(dot(norm, lightDir));
     vec4 colMult = vec4(fColMult, fColMult, fColMult, 3.0);
@@ -102,10 +102,10 @@ void main()
     EmitVertex();
     
     /*gl_Position = modelViewProjectionMatrix * vec4(p2 - right, 1.0);
-    EmitVertex();
-    
-    gl_Position = modelViewProjectionMatrix * vec4(p2 + right, 1.0);
-    EmitVertex();*/
+     EmitVertex();
+     
+     gl_Position = modelViewProjectionMatrix * vec4(p2 + right, 1.0);
+     EmitVertex();*/
     
     EndPrimitive();
     
